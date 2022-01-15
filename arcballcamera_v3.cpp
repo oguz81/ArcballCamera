@@ -1,13 +1,16 @@
-//A Rubik textured cube, controlled with keyboard and mouse.
-//24.09.2021
-//ouz81
+// Arcball camera for a Rubik cube, controlled by muouse.
+// The cube's pattern is not proper. It was built from only one surface pattern of a Rubik cube.
+// Every surface of the cube in this program have same pattern.
+// So, do not try to solve the cube!  
+// Made by ouz81.
+// ouz was here. ouz is still here. I'm sitting at home right now.
 
 #include <stdio.h>
 #include <iostream>
 #include <cmath>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#include "shader.h"
+#include "stb_image.h" // necessary for upload texture image.
+#include "shader.h" // shader class for shaders. Inspired from learnopengl.com. Nearly copied. Nearly. Not it all.
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -16,10 +19,10 @@
 GLFWwindow* window;
 
 
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 800; // screen width
+const unsigned int SCR_HEIGHT = 600; // screen height
 const float RADIUS = 1.0f; //radius of the sphere
-bool flag = false;
+bool flag = false; // a signal for mouse click.
 
 struct Quaternion{
     float cosine; //cosine of half the rotation angle
@@ -30,7 +33,6 @@ struct Quaternion{
 class ArcballCamera{
 public:
     
-    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 7.0f);
     glm::vec3 position = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec3 startPos;
     glm::vec3 currentPos = startPos;
@@ -133,13 +135,6 @@ void ArcballCamera::rotation(){
     
     
     glm::vec3 temporaryVector;
-    
-    //if(currentQuaternion.axis.x == 0){
-      //  temporaryVector.x = 0;
-        //temporaryVector.y = 0;
-        //temporaryVector.z = 0;
-        
-    //}
 
     temporaryVector = glm::cross(currentQuaternion.axis, lastQuaternion.axis);
     
