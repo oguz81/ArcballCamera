@@ -199,15 +199,14 @@ int main(){
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_TRUE);
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     //enable depth test
     glEnable(GL_DEPTH_TEST);
 
     //Shaders
     Shader cubeShader("rubik.vs", "rubik.fs");
-    //Shader lightSourceShader("lightcube.vs", "lightcube.fs");
     unsigned int cubeProgram = cubeShader.programID();
-    //unsigned int lightSourceProgram = lightSourceShader.programID();
+    
 
     float vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
