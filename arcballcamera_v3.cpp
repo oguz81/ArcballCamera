@@ -69,8 +69,8 @@ void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos){
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods){
-    action == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-    if(action == GLFW_PRESS){
+    //action == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+    if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
         
         double startXPos, startYPos; //screen coordinates when mouse clicks.
         glfwGetCursorPos(window, &startXPos, &startYPos);
