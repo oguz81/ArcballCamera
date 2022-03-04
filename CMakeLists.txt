@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project (arcballcamera_v3)
+project (arcballcamera)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "{CMAKE_SOURCE_DIR}/cmake/")
 find_package(OpenGL REQUIRED)
@@ -20,7 +20,7 @@ set(ALL_LIBS
 	
 	
 )
-add_executable(arcballcamera_v3 arcballcamera_v3.cpp shader.h shader.cpp) 
+add_executable(arcballcamera main.cpp shader.h shader.cpp) 
 target_link_libraries(${PROJECT_NAME}
 	${ALL_LIBS}	
 	
