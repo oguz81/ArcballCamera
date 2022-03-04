@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="icon" href="/home/oguzd/oguz81.github.io/githubavatar.png">
+	<script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+
+</head>
+<head>
+	<title>oguz81---->Arcball Camera with C++ and OpenGL</title>
+	<meta name = "keywords" content = "Arcball, camera, C++, OpenGL, Quaternion"/>
+	<meta name = "description" content = "Arcball Camera with C++ and OpenGL by using Quaternions."/>
+	<meta name = "revised" content = "oguz81, 04/04/2022"/>
+</head>
+<p>oguz81</p>
+<body>
+	<p align = "left"><a href = "https://oguz81.github.io/" target = "_self">Home</a></p>
+	</body>
+	<head>
+		<style>
+			.div1 {
+  
+  max-width: 1000px;
+  min-width: 100px;
+  
+}
+		</style>
+	</head>
+	<head>
+		<style>
+			.divc {
+  max-width: 1000px;
+  min-width: 100px;
+  font-size: 15px;
+  background-color: silver;
+  
+}
+		</style>
+	</head>
+<body>
+	<body>
+		<p align = "left">Published first 04.04.2022.</p>
+	</body>
+<div class = "div1">
+	<h1>Arcball Camera with C++ and OpenGL</h1>
+	<p>This is a little tutorial for making arcball camera with C++ and OpenGL. You can look into the GitHub repository for source code <a href = "https://github.com/oguz81/ArcballCamera" target = "_blank">here</a>.</p>
+
+	<p><b>Prerequistes</b></p>
+	<p>You have to know what arcball camera is. You also have to know C++ and OpenGL.</p>
+
+	<p>We used quaternions to build an arcball camera. There are also other ways to do it. OpenGL version is 3.30.</p>
+	
+	<h1>1 Quaternions</h1>
+	<p>Quaternions are kind of number structure in mathematics and also used in physics and engineering. A quaternion consists of one real part and three imaginary-like parts which are called "basic quaternions." It seems in form of <var> a + xi + yj + zk</var>. The real part is <var>a</var> and <var>i-j-k</var> are basic quaternions. It can be thought that a quaternion is built by merging a real number and a three dimensional vector.
+	</p>
+	<h2>1.1 Properties of Quaternions</h2>
+	<p>There is no need to focus all properties of quaternions. Just some of them which we use here will be given.
+\begin{equation*}
+i^2 = j^2 = k^ 2 = ijk = -1
+\end{equation*}
+\begin{equation*}
+ij = k,\quad jk = i,\quad ki = j,\quad    %\quad is for creating larger space between expressions.
+ik = -j,\quad kj = -i,\quad ji = -k
+\end{equation*}
+A quaternion can be represented in form of <var>q = [s, v]</var> where <var>s</var> is the real part and <var>v</var> is the vector part as <var>v = xi + yj + zk</var>. If
+\begin{align*}
+q_a = [s_a, v_a]\\
+q_b = [s_b, v_b]\\
+\end{align*}
+then
+\begin{align*}
+q_a + q_b = [s_a + s_b, v_a + v_b]\\
+q_a - q_b = [s_a - s_b, v_a - v_b]\\
+\end{align*}
+Assume that <var>c</var> is a constant;
+\begin{align*}
+cq_a = [cs_a, cv_a].
+\end{align*}
+If you multiply two quaternions
+\begin{align*}
+q_a . q_b &= (s_a + x_ai + y_aj + z_ak)(s_b + x_bi + y_bj + z_bk)\\
+&= [s_as_b - v_av_b, s_av_b + s_bv_a + v_a\times v_b]
+\end{align*}
+
+If <i>&#x3B8</i> is the rotation angle and $$u_xi + u_yj + u_zk$$ is the unit rotation axis which camera rotates about, then rotation quaternion is represented as
+<span style="font-size:20px"> 
+\begin{align*}
+r = e^{\frac{\theta}{2}(u_xi + u_yj + u_zk)}
+\end{align*}</span></p>
+<h1>2 Arcball Camera</h1>
+<h2>2.1 Getting Screen Coordinates</h2>
+<p>When we click the mouse on the application window, the position where mouse cursor on in that moment is our start position and the code gets that position. Then we move the mouse and the cursor moves on the screen (we are still pushing the mouse button), every position on the screen that our mouse stands on with pushed button is our current position and we have to calculate the rotation for every current position with start position until the mouse button is released.</p>
+<p>The code below is for getting start position.</p>
+<div class = "divc">
+<p>
+	<pre>
+<code>void mouse_button_callback(GLFWwindow* window, int button, int action, int mods){
+	if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
+        
+		double startXPos, startYPos; //screen coordinates when mouse clicks.
+		glfwGetCursorPos(window, &startXPos, &startYPos);
+		//convert to NDC, then assign to startPos.
+		arcCamera.startPos.x = ((startXPos - (SCR_WIDTH/2) ) / (SCR_WIDTH/2)) * RADIUS;
+		// ..same for y coordinate. 
+		arcCamera.startPos.y = (((SCR_HEIGHT/2) - startYPos) / (SCR_HEIGHT/2)) * RADIUS;
+		arcCamera.startPos.z = arcCamera.z_axis(arcCamera.startPos.x, arcCamera.startPos.y);
+		flag = true;
+	}
+     else if(action == GLFW_RELEASE){
+        arcCamera.replace();
+        flag = false;
+
+        }
+}						</code>
+					</pre>
+				</p></div>
+<p>And for getting current position</p>
+			<div class = "divc">
+				<p>
+					<pre>
+						<code>
+void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos){
+	if(flag == true){
+	//Get the screen coordinates when mouse clicks.
+	arcCamera.currentPos.x = ((xpos - (SCR_WIDTH/2) ) / (SCR_WIDTH/2)) * RADIUS;
+	arcCamera.currentPos.y = (((SCR_HEIGHT/2) - ypos) / (SCR_HEIGHT/2)) * RADIUS;
+	arcCamera.currentPos.z = arcCamera.z_axis(arcCamera.currentPos.x, arcCamera.currentPos.y);
+	arcCamera.rotation();
+    }
+}
+						</code>
+					</pre>
+				</p></div>
+<p>Let's explain them.</p>
+<p>We have an "ArcballCamera" class and "arcCamera" is an object of this class (You'll see this class later).
+In the first piece above; when we click the button, the program gets cursor position on the application screen with "glfwGetCursorPos" and assign them to startXPos and startYPos. Then these start coordinates are converted to normalized device coordinates(NDC) and are assigned to startPos vector(it is a glm::vec3 variable). But we need z axis, because arcball camera assumes that there is a sphere which we rotates and a sphere is a 3D shape. So we have to get z axis for certain location on the sphere. The z axis is calculated with this formula:
+<!--The code below, which is for a mathematical expression, is copied from http://courses.cms.caltech.edu/cs171/assignments/hw3/hw3-notes/notes-hw3.html webpage.-->
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mi>z</mi>
+  <mo class="MathClass-rel">=</mo>
+  <mi>f</mi>
+  <mrow>
+    <mo class="MathClass-open">(</mo>
+    <mrow>
+      <mi>x</mi>
+      <mo class="MathClass-punc">,</mo>
+      <mi>y</mi>
+    </mrow>
+    <mo class="MathClass-close">)</mo>
+  </mrow>
+  <mo class="MathClass-rel">=</mo>
+  <mfenced separators="" open="{" close="">
+    <mrow>
+      <mtable class="array" style="text-align:axis;" equalrows="false" columnlines="" equalcolumns="false">
+        <mtr>
+          <mtd class="array" columnalign="left">
+            <mo class="MathClass-bin">+</mo>
+            <msqrt>
+              <mrow>
+                <mn>1</mn>
+                <mo class="MathClass-bin">-</mo>
+                <msup>
+                  <mrow>
+                    <mi>x</mi>
+                  </mrow>
+                  <mrow>
+                    <mn>2</mn>
+                  </mrow>
+                </msup>
+                <mo class="MathClass-bin">-</mo>
+                <msup>
+                  <mrow>
+                    <mi>y</mi>
+                  </mrow>
+                  <mrow>
+                    <mn>2</mn>
+                  </mrow>
+                </msup>
+              </mrow>
+            </msqrt>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd class="array" columnalign="left">
+            <mn>0</mn>
+          </mtd>
+        </mtr>
+      </mtable>
+      <mtable class="array" style="text-align:axis;" equalrows="false" columnlines="" equalcolumns="false">
+        <mtr>
+          <mtd class="array" columnalign="left">
+            <mo class="MathClass-punc">,</mo>
+            <mspace class="tmspace" width="2.6108pt" />
+            <mi>i</mi>
+            <mi>f</mi>
+            <mrow>
+              <mo class="MathClass-open">(</mo>
+              <mrow>
+                <msup>
+                  <mrow>
+                    <mi>x</mi>
+                  </mrow>
+                  <mrow>
+                    <mn>2</mn>
+                  </mrow>
+                </msup>
+                <mo class="MathClass-bin">+</mo>
+                <msup>
+                  <mrow>
+                    <mi>y</mi>
+                  </mrow>
+                  <mrow>
+                    <mn>2</mn>
+                  </mrow>
+                </msup>
+                <mo class="MathClass-rel">&#x2264;</mo>
+                <mn>1</mn>
+              </mrow>
+              <mo class="MathClass-close">)</mo>
+            </mrow>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd class="array" columnalign="left">
+            <mo class="MathClass-punc">,</mo>
+            <mspace class="tmspace" width="2.6108pt" />
+            <mi>i</mi>
+            <mi>f</mi>
+            <mrow>
+              <mo class="MathClass-open">(</mo>
+              <mrow>
+                <msup>
+                  <mrow>
+                    <mi>x</mi>
+                  </mrow>
+                  <mrow>
+                    <mn>2</mn>
+                  </mrow>
+                </msup>
+                <mo class="MathClass-bin">+</mo>
+                <msup>
+                  <mrow>
+                    <mi>y</mi>
+                  </mrow>
+                  <mrow>
+                    <mn>2</mn>
+                  </mrow>
+                </msup>
+                <mo class="MathClass-rel">&gt;</mo>
+                <mn>1</mn>
+              </mrow>
+              <mo class="MathClass-close">)</mo>
+            </mrow>
+          </mtd>
+        </mtr>
+      </mtable>
+    </mrow>
+  </mfenced>
+</math> 
+<br \>
+Now, we have normalized x, y and z coordinates for start position. Last thing we have to do in "mouse_button_callback" function is to assing "true" to the flag. This flag inform "mouse_pos_callback" function that the mouse button is pressed or released. When it is "true", "mouse_pos_callback" knows that the button is pressed and gets the current position of the cursor for every moment until the button is released. When the button is released, "false" is assigned to "flag" and the function finishes getting current position.
+
+"mouse_pos_callback" function, like we said before, gets the current position of the cursor on the window, converts them to NDCs, calculates z axis and starts the "rotation()" function of arcballCamera object. "rotation()" is the heart of this application. It's time to dive into it.</p>
+<h1>3 Rotation</h1>
+	<p>Here is the algorithm:
+<ol>
+	<li> Transform start and current positions to unit vectors.</li>
+	<li> Get rotational axis by taking cross product of start and current positions and transform it to unit vector.</li>
+	<li> Get cosine of the rotation angle by taking dot product of start and current unit vectors.</li>
+	<li> Get rotation angle &#x3B8;.</li>
+	<li> Build currentQuaternion struct with &#x3B8; and rotational axis by using required operations (assign the cosine of half the angle and rotational axis which is scaled by sine of half the angle).</li>
+	<li> Take  $$q' = q_{current}.q_{last}$$ product.</li>
+	<li> Replace lastQuaternion variables with new variables after the mouse button is released.</li> 
+</ol>
+
+So, what are currentQuaternion and lastQuaternion we mentioned above?</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+struct Quaternion{
+    float cosine; //cosine of half the rotation angle
+    glm::vec3 axis; //unit vector scaled by sine of half the angle
+
+};
+		</code>
+	</pre>
+</p></div>
+<p>
+These are structures in type of the struct "Quaternion". We created "Quaternion" structure for describing rotation with quaternions. A Quaternion structure has a "cosine" variable and an "axis" vector.<br \>
+The next one is the class which we used in this study.
+</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+class ArcballCamera{
+public:
+    
+    glm::vec3 position = glm::vec3(0.0f, 0.0f, -3.0f);
+    glm::vec3 startPos;
+    glm::vec3 currentPos = startPos;
+    glm::vec3 startPosUnitVector;
+    glm::vec3 currentPosUnitVector;
+
+    Quaternion currentQuaternion;
+    Quaternion lastQuaternion = {0.0f, glm::vec3(1.0f, 0.0f, 0.0f)};
+    
+    float cosValue, cosValue_2;
+    float theta;
+    float angle = 180.0f;
+    glm::vec3 rotationalAxis = glm::vec3(1.0f, 0.0f, 0.0f);                       
+    glm::vec3 rotationalAxis_2;
+    ArcballCamera (){};
+    float z_axis(float,float);
+    glm::vec3 getUnitVector(glm::vec3);
+    float dotProduct();
+    void rotation();
+    void replace();
+
+    
+};
+		</code>
+	</pre>
+</p></div>
+<p>Functions of Arcball class and what they do:
+	<ol>
+	<li> z_axis(float, float): Calculates z axis.</li>
+	<li> getUnitVector(glm::vec3): Transforms glm::vec3 parameter to unit vector.</li>
+	<li> dotProduct(): Calculates the dot product of start and current position's unit vector. It doesn't get any parameter.</li>
+	<li> rotation(): Makes all rotation calculation.</li>
+	<li> replace(): Replaces lastQuaternion variables with new ones.</li>
+	</ol>
+The most important function is "rotation()". What other functions do are very clear and also they have just one job, so I will not explain them. However rotation() function has more calculation, each of them is important and has to be understood. Let's start and go on step by step to see what rotation() does.
+</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+startPosUnitVector = getUnitVector(startPos);
+currentPosUnitVector = getUnitVector(currentPos);
+currentQuaternion.axis = glm::cross(startPos, currentPos);
+currentQuaternion.axis = getUnitVector(currentQuaternion.axis);
+    
+cosValue = dotProduct(); //q0 is cosine of the angle here.
+if(cosValue > 1) cosValue = 1;
+theta = (acos(cosValue) * 180 / 3.1416); //theta is the angle now.
+		</code>
+	</pre>
+</p></div>
+<p>These lines run the first four steps in the algorithm we mentioned above. Transforming start and current position vectors to unit vectors, getting rotation axis and rotation angle.In the bottom, we calculate rotation angle &#x3B8 and completed the first four step of the algorithm. But maybe one line must be explained:</p>
+<p>
+	<code>
+		if(cosValue > 1) cosValue = 1;
+	</code>
+</p>
+<p>When dotProduct() calculates the dot product of vectors and if the result is 1, it may not equal to 1 indeed. It may be 1.00000001 but when you display the result on the screen, it seems as 1. Because of this, I put this line there and it checks the result if it is 1 or not.(Maybe you may not encounter such a problem, but i did and found this solution)</p>
+
+<p>Then we build currentQuaternion assigning cosine of half the rotation angle and rotation axis which is scaled by sine of half the rotation angle.</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+currentQuaternion.cosine = cos((theta / 2) * 3.1416 / 180);
+
+currentQuaternion.axis.x = currentQuaternion.axis.x * sin((theta / 2) * 3.1416 / 180);
+currentQuaternion.axis.y = currentQuaternion.axis.y * sin((theta / 2) * 3.1416 / 180);
+currentQuaternion.axis.z = currentQuaternion.axis.z * sin((theta / 2) * 3.1416 / 180);
+		</code>
+	</pre>
+</p></div>
+
+<p>Remember, we represent rotation with quaternions.</p>
+<p>Let's write currentQuaternion in mathematical notation:
+\begin{equation*}
+\begin{split}
+q_{current} &=  e^{\frac{\theta}{2}(u_xi + u_yj + u_zk)}\\
+            &=  \cos{\frac{\theta}{2}} + (u_xi + u_yj + u_zk)\sin{\frac{\theta}{2}}\\
+            &= [\cos{\frac{\theta}{2}} , (u_xi + u_yj + u_zk)\sin{\frac{\theta}{2}}]
+\end{split}
+\end{equation*}
+
+We have also another quaternion, called lastQuaternion, which keeps the last values of cosine and rotation axis.
+\begin{equation*}
+\begin{split}
+q_{last} &=  e^{\frac{\theta'}{2}(u'_xi + u'_yj + u'_zk)}\\
+            &=  \cos{\frac{\theta'}{2}} + (u'_xi + u'_yj + u'_zk)\sin{\frac{\theta'}{2}}\\
+            &= [\cos{\frac{\theta'}{2}} , (u'_xi + u'_yj + u'_zk)\sin{\frac{\theta'}{2}}]
+\end{split}
+\end{equation*} 
+
+We have arrived the most important step. How do we calculate the rotation? We do it with this product:
+\begin{equation*}
+q' = q_{current}q_{last}
+\end{equation*}
+
+It was given how to product two quaternions before, so I will not mention about it again but tell how to code it.
+The real part of the quaternion <i>q'</i> is calculated by below lines:
+</p>
+<div class = "divc">
+<p>	<code>
+cosValue_2 = (currentQuaternion.cosine * lastQuaternion.cosine)
+                         - glm::dot(currentQuaternion.axis, lastQuaternion.axis);
+</code></p></div>
+Then the vector part of the quaternion is calculated by:
+</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+glm::vec3 temporaryVector;
+
+temporaryVector = glm::cross(currentQuaternion.axis, lastQuaternion.axis);
+    
+
+rotationalAxis_2.x = (currentQuaternion.cosine * lastQuaternion.axis.x) + 
+                     (lastQuaternion.cosine * currentQuaternion.axis.x ) +
+                      temporaryVector.x;
+
+rotationalAxis_2.y = (currentQuaternion.cosine * lastQuaternion.axis.y) + 
+                     (lastQuaternion.cosine * currentQuaternion.axis.y ) +
+                      temporaryVector.y;
+
+rotationalAxis_2.z = (currentQuaternion.cosine * lastQuaternion.axis.z) + 
+                     (lastQuaternion.cosine * currentQuaternion.axis.z ) +
+                      temporaryVector.z;
+		</code>
+	</pre>
+</p></div>
+<p>We need a temporary vector (glm::vec3 temporaryVector) to calculate the cross product of vector parts of current and last quaternions.</p>
+<p>As a result, we have cosine value and vector part of <i>q'</i>. What we have to do is extracting the rotation angle from the cosine value and the rotation axis from the vector part.</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+angle = (acos(cosValue_2) * 180 / 3.1416) * 2;
+
+rotationalAxis.x = rotationalAxis_2.x / sin((angle / 2) * 3.1416 / 180);
+rotationalAxis.y = rotationalAxis_2.y / sin((angle / 2) * 3.1416 / 180);
+rotationalAxis.z = rotationalAxis_2.z / sin((angle / 2) * 3.1416 / 180);
+		</code>
+	</pre>
+</p></div>
+<p>Remember that the vector part of the rotation quaternion is in scaled form done by sine of half the angle. To extract the rotation axis, we need to divide the vector part by sine.</p>
+<p>Then "angle" and "rotationalAxis" is put into glm::rotate function.</p>
+<div class = "divc"><p><code>view = glm::rotate(view, glm::radians(arcCamera.angle), arcCamera.rotationalAxis);</code></p></div>
+<p>Finally, we put cosine and vector part(rotationalAxis_2) of <i>q'</i> into lastQuaternion when mouse button is released. lastQuaternion variables must be updated after rotation because we calculate the rotation by multiplying last two rotations, $$q' = q_{current}q_{last}$$.</p>
+<div class = "divc">
+<p>
+	<pre>
+		<code>
+if(action == GLFW_RELEASE){
+    arcCamera.replace();
+    flag = false;
+
+        }
+
+void ArcballCamera::replace(){
+    lastQuaternion.cosine = cosValue_2;
+    lastQuaternion.axis = rotationalAxis_2;
+}
+		</code>
+	</pre>
+</p></div>
+<p>Full source code is <a href = "https://github.com/oguz81/ArcballCamera/blob/main/arcballcamera_v3.cpp" target = "_blank">here</a>.</p>
+		</div>
+	</body>
+</html>
