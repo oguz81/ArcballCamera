@@ -5,7 +5,7 @@ OpenGL version 3.30.
 
 We used quaternions to make it.
 
-There is a pdf tutorial in GitHub repository, https://github.com/oguz81/ArcballCamera .
+Watch on YouTube: https://www.youtube.com/watch?v=mz4F-Ekczbg
 
 If you want to ask something, ouzdemirtas@hotmail.com
 
